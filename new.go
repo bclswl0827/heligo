@@ -8,7 +8,7 @@ import (
 	"gonum.org/v1/plot/plotter"
 )
 
-func New(dataProvider DataProvider, plotDate time.Time, hoursTickSpan, minutesTickSpan time.Duration) (Helicorder, error) {
+func New(dataProvider DataProvider, hoursTickSpan, minutesTickSpan time.Duration) (Helicorder, error) {
 	if minutesTickSpan.Minutes() == 0 {
 		return Helicorder{}, errors.New("set minutesTickSpan field to zero is not allowed")
 	}
@@ -23,7 +23,6 @@ func New(dataProvider DataProvider, plotDate time.Time, hoursTickSpan, minutesTi
 	}
 
 	heli := Helicorder{
-		Date:            time.Date(plotDate.Year(), plotDate.Month(), plotDate.Day(), 0, 0, 0, 0, time.UTC),
 		hoursTickSpan:   hoursTickSpan,
 		minutesTickSpan: minutesTickSpan,
 		dataProvider:    dataProvider,

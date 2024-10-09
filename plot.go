@@ -11,19 +11,20 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
-func (h *Helicorder) Plot(sampleRate, downSampleFactor int, scaleFactor, lineWidth float64) error {
+func (h *Helicorder) Plot(date time.Time, sampleRate, downSampleFactor int, scaleFactor, lineWidth float64) error {
 	if sampleRate < 1 {
 		return errors.New("sampleRate must be greater than 0")
 	}
 	if downSampleFactor < 1 {
 		return errors.New("downSampleFactor must be greater than 0")
 	}
+	plotDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 
 	// Set plot title
 	h.plotCtx.Title.Text = fmt.Sprintf(
 		"%s / %s / %s %s %s %s",
 		h.dataProvider.GetPlotName(),
-		h.Date.UTC().Format("Jan 2, 2006"),
+		plotDate.UTC().Format("Jan 2, 2006"),
 		h.dataProvider.GetStation(),
 		h.dataProvider.GetChannel(),
 		h.dataProvider.GetNetwork(),
@@ -31,7 +32,7 @@ func (h *Helicorder) Plot(sampleRate, downSampleFactor int, scaleFactor, lineWid
 	)
 
 	// Get plot data from data provider
-	plotData, err := h.dataProvider.GetPlotData(h.Date, h.Date.Add(h.hoursTickSpan))
+	plotData, err := h.dataProvider.GetPlotData(plotDate, plotDate.Add(h.hoursTickSpan))
 	if err != nil {
 		return err
 	}
@@ -50,7 +51,7 @@ func (h *Helicorder) Plot(sampleRate, downSampleFactor int, scaleFactor, lineWid
 	)
 	for row := totalRows; row >= 1; row-- {
 		currentCol := totalRows - row
-		startTime := h.Date.Add(time.Duration(currentCol) * h.minutesTickSpan)
+		startTime := plotDate.Add(time.Duration(currentCol) * h.minutesTickSpan)
 		endTime := startTime.Add(h.minutesTickSpan)
 
 		// Get slice within time range

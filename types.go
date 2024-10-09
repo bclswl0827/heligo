@@ -21,22 +21,17 @@ type DataProvider interface {
 }
 
 type Helicorder struct {
-	// Date of the plot in UTC
-	// accurate to a specific day
-	Date time.Time
-
+	// Plot context used to render the plot
+	plotCtx *plot.Plot
 	// hoursTickSpan is the number of hours
 	// between ticks on the Y-axis
 	hoursTickSpan time.Duration
 	// minutesTickSpan is the number of minutes
 	// between ticks on the X-axis
 	minutesTickSpan time.Duration
-
 	// Data provider interface
 	// should implemented by user
 	dataProvider DataProvider
-	// Plot context used to render the plot
-	plotCtx *plot.Plot
 }
 
 type hourTickMarker struct {
