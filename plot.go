@@ -11,12 +11,9 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
-func (h *Helicorder) Plot(date time.Time, sampleRate, downSampleFactor int, scaleFactor, lineWidth float64) error {
-	if sampleRate < 1 {
-		return errors.New("sampleRate must be greater than 0")
-	}
-	if downSampleFactor < 1 {
-		return errors.New("downSampleFactor must be greater than 0")
+func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth float64) error {
+	if maxSamples < 1 {
+		return errors.New("maxSamples must be greater than 0")
 	}
 	plotDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 
@@ -65,7 +62,7 @@ func (h *Helicorder) Plot(date time.Time, sampleRate, downSampleFactor int, scal
 		// Get final plot points concurrently
 		wg.Add(1)
 		go func(row int, lineData []PlotData, currentCol int) {
-			points := h.getPlotPoints(lineData, sampleRate, downSampleFactor, scaleFactor, float64(row))
+			points := h.getPlotPoints(lineData, maxSamples, scaleFactor, float64(row))
 			line, _, _ := plotter.NewLinePoints(points)
 			line.LineStyle.Width = vg.Length(lineWidth)
 			line.Color = h.getColor(groupRows, currentCol%groupRows)

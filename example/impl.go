@@ -31,10 +31,10 @@ func (d *dataProviderImpl) GetPlotData(start, end time.Time) ([]heligo.PlotData,
 	for _, v := range d.mseed.Series {
 		if start.Before(v.FixedSection.StartTime) && end.After(v.FixedSection.StartTime) {
 			duration := v.FixedSection.SamplesNumber / v.FixedSection.SampleFactor
-			sampleRate := float64(v.FixedSection.SamplesNumber) / float64(duration)
+			sampleRate := int(v.FixedSection.SamplesNumber / duration)
 			for i, vv := range v.DataSection.Decoded {
 				plotData = append(plotData, heligo.PlotData{
-					Time:  v.FixedSection.StartTime.Add(time.Duration(i*int(1000/sampleRate)) * time.Millisecond),
+					Time:  v.FixedSection.StartTime.Add(time.Duration(i*1000/sampleRate) * time.Millisecond),
 					Value: float64(vv.(int32)),
 				})
 			}

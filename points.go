@@ -1,18 +1,48 @@
 package heligo
 
 import (
+	"sort"
+	"time"
+
 	"gonum.org/v1/plot/plotter"
 )
 
-func (h *Helicorder) getPlotPoints(dataArr []PlotData, sampleRate, downSampleFactor int, scaleFactor, shiftVal float64) plotter.XYs {
+func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples int, scaleFactor, shiftVal float64) plotter.XYs {
 	dataLength := len(dataArr)
+	fillRatio := float64(dataLength) / float64(h.minutesTickSpan.Seconds()) / 100
+	if fillRatio < 1 {
+		maxSamples = int(fillRatio * float64(maxSamples))
+	}
 
-	// Get downsampled data
-	maxSamples := int(float64(dataLength) / float64(sampleRate*int(h.minutesTickSpan.Seconds())) * float64(downSampleFactor))
+	// Perform downsampling with time alignment
 	if dataLength > maxSamples {
 		newDataArr := make([]PlotData, maxSamples)
-		for i := range newDataArr {
-			newDataArr[i] = dataArr[int(float64(dataLength)/float64(maxSamples))*i]
+		timeSpan := dataArr[dataLength-1].Time.Sub(dataArr[0].Time)
+
+		// Interval for downsampled data
+		sampleInterval := timeSpan / time.Duration(maxSamples-1)
+
+		for i := 0; i < maxSamples; i++ {
+			targetTime := dataArr[0].Time.Add(time.Duration(i) * sampleInterval)
+			// Find the closest index where dataArr[j].Time is >= targetTime
+			j := sort.Search(dataLength, func(k int) bool {
+				return dataArr[k].Time.After(targetTime) || dataArr[k].Time.Equal(targetTime)
+			})
+
+			if j > 0 && j < dataLength {
+				// Linear interpolation between dataArr[j-1] and dataArr[j]
+				t1, t2 := dataArr[j-1].Time, dataArr[j].Time
+				v1, v2 := dataArr[j-1].Value, dataArr[j].Value
+				weight := targetTime.Sub(t1).Seconds() / t2.Sub(t1).Seconds()
+				newDataArr[i] = PlotData{
+					Time:  targetTime,
+					Value: v1*(1-weight) + v2*weight,
+				}
+			} else if j == 0 {
+				newDataArr[i] = dataArr[0]
+			} else {
+				newDataArr[i] = dataArr[dataLength-1]
+			}
 		}
 
 		dataArr = newDataArr
