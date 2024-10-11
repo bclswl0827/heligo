@@ -1,6 +1,6 @@
 module github.com/bclswl0827/heligo
 
-go 1.23.0
+go 1.21.0
 
 require (
 	github.com/bclswl0827/mseedio v1.0.9
