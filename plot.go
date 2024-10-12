@@ -29,16 +29,6 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 		h.dataProvider.GetLocation(),
 	)
 
-	// Get plot data from data provider
-	plotData, err := h.dataProvider.GetPlotData(plotDate, plotDate.Add(h.hoursTickSpan))
-	if err != nil {
-		return err
-	}
-	if len(plotData) == 0 {
-		return errors.New("no data found for plot")
-	}
-	sort.SliceStable(plotData, func(i, j int) bool { return plotData[i].Time.Before(plotData[j].Time) })
-
 	// Plot the data
 	groupRows := int(time.Hour.Minutes() / h.minutesTickSpan.Minutes())
 	totalRows := groupRows * int(h.hoursTickSpan.Hours())
@@ -49,20 +39,22 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 	)
 
 	// Set concurrency jobs depending on number of CPUs
-	sem := make(chan struct{}, runtime.NumCPU()*2)
+	sem := make(chan struct{}, runtime.NumCPU()*10)
 
 	for row := totalRows; row >= 1; row-- {
 		currentCol := totalRows - row
 		startTime := plotDate.Add(time.Duration(currentCol) * h.minutesTickSpan)
 		endTime := startTime.Add(h.minutesTickSpan)
 
-		// Get slice within time range
-		startIndex := sort.Search(len(plotData), func(i int) bool { return plotData[i].Time.After(startTime) || plotData[i].Time.Equal(startTime) })
-		endIndex := sort.Search(len(plotData), func(i int) bool { return plotData[i].Time.After(endTime) })
-		if startIndex == endIndex {
+		// Get plot data from data provider
+		plotData, err := h.dataProvider.GetPlotData(startTime, endTime)
+		if err != nil {
+			return err
+		}
+		if len(plotData) == 0 {
 			continue
 		}
-		lineData := plotData[startIndex:endIndex]
+		sort.SliceStable(plotData, func(i, j int) bool { return plotData[i].Time.Before(plotData[j].Time) })
 
 		sem <- struct{}{}
 		wg.Add(1)
@@ -73,7 +65,7 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 			}()
 
 			line := &plotter.Line{
-				XYs:       h.getPlotPoints(lineData, maxSamples, scaleFactor, float64(row)),
+				XYs:       h.getPlotPoints(lineData, maxSamples, row, scaleFactor),
 				LineStyle: plotter.DefaultLineStyle,
 			}
 			line.LineStyle.Width = vg.Length(lineWidth)
@@ -82,7 +74,7 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 			mu.Lock()
 			h.plotCtx.Add(line)
 			mu.Unlock()
-		}(row, lineData, currentCol)
+		}(row, plotData, currentCol)
 	}
 
 	wg.Wait()

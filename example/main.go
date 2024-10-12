@@ -28,6 +28,13 @@ func main() {
 		panic(err)
 	}
 
+	// // Get plot data in bytes
+	// bytes, err := heli.Bytes(1000, "svg")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// log.Println("plot data in bytes:", len(bytes))
+
 	log.Println("saving plot...")
 	err = heli.Save(1000, "out.svg")
 	if err != nil {

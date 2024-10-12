@@ -7,7 +7,7 @@ import (
 	"gonum.org/v1/plot/plotter"
 )
 
-func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples int, scaleFactor, shiftVal float64) plotter.XYs {
+func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow int, scaleFactor float64) plotter.XYs {
 	dataLength := len(dataArr)
 	fillRatio := float64(dataLength) / float64(h.minutesTickSpan.Seconds()) / 100
 	if fillRatio < 1 {
@@ -49,14 +49,28 @@ func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples int, scaleFact
 		dataLength = maxSamples
 	}
 
+	// Normalize data to make it easier to plot
 	normalizedDataArr, minVal, maxVal := h.normalizePlotData(dataArr, 0)
 	scaleRatio := h.getScaleRatio(normalizedDataArr, scaleFactor, minVal, maxVal)
-	points := make(plotter.XYs, dataLength)
-	for i := 0; i < dataLength; i++ {
-		minutes := normalizedDataArr[i].Time.Minute() - (normalizedDataArr[i].Time.Minute()/int(h.minutesTickSpan.Minutes()))*int(h.minutesTickSpan.Minutes())
-		seconds := float64(normalizedDataArr[i].Time.Second()) + float64(normalizedDataArr[i].Time.Nanosecond())/1000000000
-		points[i].X = float64(minutes) + seconds/60
-		points[i].Y = shiftVal + normalizedDataArr[i].Value*scaleRatio
+
+	minuteSteps := int(time.Hour.Minutes() / h.minutesTickSpan.Minutes())
+	totalRows := minuteSteps * int(h.hoursTickSpan.Hours())
+	currentCarry := (totalRows - currentRow) % minuteSteps
+
+	var points plotter.XYs
+	for idx := 0; idx < dataLength; idx++ {
+		// Check carries to prevent overlapping lines
+		calcCarry := int(normalizedDataArr[idx].Time.Minute()) / int(h.minutesTickSpan.Minutes())
+		if calcCarry != currentCarry {
+			continue
+		}
+
+		minutes := normalizedDataArr[idx].Time.Minute() - calcCarry*int(h.minutesTickSpan.Minutes())
+		seconds := float64(normalizedDataArr[idx].Time.Second()) + float64(normalizedDataArr[idx].Time.Nanosecond())/1000000000
+		points = append(points, plotter.XY{
+			X: float64(minutes) + seconds/60,
+			Y: float64(currentRow) + normalizedDataArr[idx].Value*scaleRatio,
+		})
 	}
 
 	return points
