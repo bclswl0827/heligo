@@ -3,6 +3,7 @@ package heligo
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"sort"
 	"sync"
 	"time"
@@ -34,7 +35,7 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 		return err
 	}
 	if len(plotData) == 0 {
-		return errors.New("no data found")
+		return errors.New("no data found for plot")
 	}
 	sort.SliceStable(plotData, func(i, j int) bool { return plotData[i].Time.Before(plotData[j].Time) })
 
@@ -46,6 +47,10 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 		wg sync.WaitGroup
 		mu sync.Mutex
 	)
+
+	numCPU := runtime.NumCPU()
+	sem := make(chan struct{}, numCPU)
+
 	for row := totalRows; row >= 1; row-- {
 		currentCol := totalRows - row
 		startTime := plotDate.Add(time.Duration(currentCol) * h.minutesTickSpan)
@@ -59,18 +64,22 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 		}
 		lineData := plotData[startIndex:endIndex]
 
-		// Get final plot points concurrently
+		sem <- struct{}{}
 		wg.Add(1)
 		go func(row int, lineData []PlotData, currentCol int) {
+			defer func() {
+				<-sem
+				defer wg.Done()
+			}()
+
 			points := h.getPlotPoints(lineData, maxSamples, scaleFactor, float64(row))
 			line, _, _ := plotter.NewLinePoints(points)
 			line.LineStyle.Width = vg.Length(lineWidth)
 			line.Color = h.getColor(groupRows, currentCol%groupRows)
 
 			mu.Lock()
-			defer mu.Unlock()
-			defer wg.Done()
 			h.plotCtx.Add(line)
+			mu.Unlock()
 		}(row, lineData, currentCol)
 	}
 
