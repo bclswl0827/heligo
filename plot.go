@@ -48,8 +48,8 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 		mu sync.Mutex
 	)
 
-	numCPU := runtime.NumCPU()
-	sem := make(chan struct{}, numCPU)
+	// Set concurrency jobs depending on number of CPUs
+	sem := make(chan struct{}, runtime.NumCPU()*2)
 
 	for row := totalRows; row >= 1; row-- {
 		currentCol := totalRows - row
@@ -72,10 +72,12 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 				defer wg.Done()
 			}()
 
-			points := h.getPlotPoints(lineData, maxSamples, scaleFactor, float64(row))
-			line, _, _ := plotter.NewLinePoints(points)
+			line := &plotter.Line{
+				XYs:       h.getPlotPoints(lineData, maxSamples, scaleFactor, float64(row)),
+				LineStyle: plotter.DefaultLineStyle,
+			}
 			line.LineStyle.Width = vg.Length(lineWidth)
-			line.Color = h.getColor(groupRows, currentCol%groupRows)
+			line.LineStyle.Color = h.getColor(groupRows, currentCol%groupRows)
 
 			mu.Lock()
 			h.plotCtx.Add(line)
