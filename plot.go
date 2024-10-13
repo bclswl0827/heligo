@@ -7,9 +7,6 @@ import (
 	"sort"
 	"sync"
 	"time"
-
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/vg"
 )
 
 func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth float64) error {
@@ -64,15 +61,13 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 				defer wg.Done()
 			}()
 
-			line := &plotter.Line{
-				XYs:       h.getPlotPoints(lineData, maxSamples, row, scaleFactor),
-				LineStyle: plotter.DefaultLineStyle,
-			}
-			line.LineStyle.Width = vg.Length(lineWidth)
-			line.LineStyle.Color = h.getColor(groupRows, currentCol%groupRows)
+			lineColor := h.getColor(groupRows, currentCol%groupRows)
+			segments := h.getPlotSegments(lineData, maxSamples, row, scaleFactor, lineWidth, lineColor)
 
 			mu.Lock()
-			h.plotCtx.Add(line)
+			for _, segment := range segments {
+				h.plotCtx.Add(segment)
+			}
 			mu.Unlock()
 		}(row, plotData, currentCol)
 	}
