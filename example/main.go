@@ -23,7 +23,7 @@ func main() {
 	}
 
 	log.Println("drawing plot...")
-	err = heli.Plot(mseed.StartTime, 5000, 2.2, 0.5)
+	err = heli.Plot(mseed.StartTime, 10000, 2.2, 1, nil) // Set colorScheme to nil to use default color scheme
 	if err != nil {
 		panic(err)
 	}

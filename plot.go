@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
-func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth float64) error {
+func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth float64, colorScheme ColorScheme) error {
+	if colorScheme == nil {
+		colorScheme = &defaultColorScheme{}
+	}
+
 	if maxSamples < 1 {
 		return errors.New("maxSamples must be greater than 0")
 	}
@@ -61,7 +65,7 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 				defer wg.Done()
 			}()
 
-			lineColor := h.getColor(groupRows, currentCol%groupRows)
+			lineColor := colorScheme.GetColor(groupRows, currentCol%groupRows)
 			segments := h.getPlotSegments(lineData, maxSamples, row, scaleFactor, lineWidth, lineColor)
 
 			mu.Lock()

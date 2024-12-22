@@ -1,6 +1,7 @@
 package heligo
 
 import (
+	"image/color"
 	"time"
 
 	"gonum.org/v1/plot"
@@ -32,6 +33,10 @@ type Helicorder struct {
 	// Data provider interface
 	// should implemented by user
 	dataProvider DataProvider
+}
+
+type ColorScheme interface {
+	GetColor(groups, index int) color.Color
 }
 
 type hourTickMarker struct {

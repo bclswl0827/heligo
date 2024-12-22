@@ -5,7 +5,9 @@ import (
 	"math"
 )
 
-func (h *Helicorder) getColor(groups, index int) color.Color {
+type defaultColorScheme struct{}
+
+func (h *defaultColorScheme) GetColor(groups, index int) color.Color {
 	const (
 		baseSaturation = 0.9
 		baseLightness  = 0.6
