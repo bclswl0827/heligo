@@ -1,6 +1,7 @@
 package heligo
 
 import (
+	"math"
 	"sort"
 	"time"
 
@@ -50,8 +51,8 @@ func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow in
 	}
 
 	// Normalize data to make it easier to plot
-	normalizedDataArr, minVal, maxVal := h.normalizePlotData(dataArr, 0)
-	scaleRatio := h.getScaleRatio(normalizedDataArr, scaleFactor, minVal, maxVal)
+	normalizedDataArr := h.normalizePlotData(dataArr, 0)
+	scaleRatio := scaleFactor / math.MaxInt32
 
 	minuteSteps := int(time.Hour.Minutes() / h.minutesTickSpan.Minutes())
 	totalRows := minuteSteps * int(h.hoursTickSpan.Hours())

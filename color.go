@@ -9,11 +9,11 @@ type defaultColorScheme struct{}
 
 func (h *defaultColorScheme) GetColor(groups, index int) color.Color {
 	const (
-		baseSaturation = 0.9
+		baseSaturation = 0.7
 		baseLightness  = 0.6
 	)
 
-	hue := float64(index) / float64(groups) * 360.0
+	hue := float64(index) / 2 * 360.0
 	hue = math.Mod(hue+30, 360)
 	c := (1 - math.Abs(2*baseLightness-1)) * baseSaturation
 	x := c * (1 - math.Abs(math.Mod(hue/60, 2)-1))

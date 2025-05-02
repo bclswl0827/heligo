@@ -12,7 +12,7 @@ func New(dataProvider DataProvider, hoursTickSpan, minutesTickSpan time.Duration
 	if minutesTickSpan.Minutes() == 0 {
 		return Helicorder{}, errors.New("set minutesTickSpan field to zero is not allowed")
 	}
-	if minutesTickSpan.Minutes() > 60 {
+	if minutesTickSpan.Minutes() >= 60 {
 		return Helicorder{}, errors.New("set minutesTickSpan field to greater than 60 minutes is not allowed")
 	}
 	if int(hoursTickSpan.Minutes())%int(minutesTickSpan.Minutes()) != 0 {

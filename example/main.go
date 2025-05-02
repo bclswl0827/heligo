@@ -23,7 +23,7 @@ func main() {
 	}
 
 	log.Println("drawing plot...")
-	err = heli.Plot(mseed.StartTime, 10000, 2.2, 1, nil) // Set colorScheme to nil to use default color scheme
+	err = heli.Plot(mseed.StartTime, 10000, 500, 1, nil) // Set colorScheme to nil to use default color scheme
 	if err != nil {
 		panic(err)
 	}
@@ -35,7 +35,7 @@ func main() {
 	}
 
 	// Get plot data in bytes
-	bytes, err := heli.Bytes(1000, "svg")
+	bytes, err := heli.Bytes(1000, "png")
 	if err != nil {
 		panic(err)
 	}

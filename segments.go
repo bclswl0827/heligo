@@ -24,7 +24,7 @@ func (h *Helicorder) getPlotSegments(dataArr []PlotData, maxSamples, currentRow 
 			line.LineStyle.Width = vg.Length(lineWidth)
 			line.LineStyle.Color = lineColor
 			lines = append(lines, line)
-			lineData = lineData[:0]
+			lineData = []PlotData{}
 		}
 	}
 
@@ -32,7 +32,7 @@ func (h *Helicorder) getPlotSegments(dataArr []PlotData, maxSamples, currentRow 
 		lineData = append(lineData, dataArr[i-1])
 
 		// Create new segment if the time difference is greater than 5 second
-		if dataArr[i].Time.Sub(dataArr[i-1].Time) > 5*time.Second {
+		if dataArr[i].Time.Sub(dataArr[i-1].Time) > time.Second {
 			appendLine()
 		}
 	}

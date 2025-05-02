@@ -2,7 +2,7 @@ package heligo
 
 import "math/big"
 
-func (h *Helicorder) normalizePlotData(dataArr []PlotData, center float64) ([]PlotData, float64, float64) {
+func (h *Helicorder) normalizePlotData(dataArr []PlotData, center float64) []PlotData {
 	var sum big.Float
 	for _, val := range dataArr {
 		bigVal := big.NewFloat(val.Value)
@@ -31,5 +31,5 @@ func (h *Helicorder) normalizePlotData(dataArr []PlotData, center float64) ([]Pl
 		}
 	}
 
-	return normalizedData, minVal, maxVal
+	return normalizedData
 }

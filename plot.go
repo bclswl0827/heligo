@@ -68,11 +68,11 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 			lineColor := colorScheme.GetColor(groupRows, currentCol%groupRows)
 			segments := h.getPlotSegments(lineData, maxSamples, row, scaleFactor, lineWidth, lineColor)
 
-			mu.Lock()
 			for _, segment := range segments {
+				mu.Lock()
 				h.plotCtx.Add(segment)
+				mu.Unlock()
 			}
-			mu.Unlock()
 		}(row, plotData, currentCol)
 	}
 
