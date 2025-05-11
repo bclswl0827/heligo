@@ -31,8 +31,8 @@ func (h *Helicorder) getPlotSegments(dataArr []PlotData, maxSamples, currentRow 
 	for i := 1; i < len(dataArr); i++ {
 		lineData = append(lineData, dataArr[i-1])
 
-		// Create new segment if the time difference is greater than 5 second
-		if dataArr[i].Time.Sub(dataArr[i-1].Time) > time.Second {
+		// Create new segment if the time difference is greater than 2 second
+		if dataArr[i].Time.Sub(dataArr[i-1].Time) > 2*time.Second {
 			appendLine()
 		}
 	}

@@ -3,11 +3,20 @@ package heligo
 import "math/big"
 
 func (h *Helicorder) normalizePlotData(dataArr []PlotData, center float64) []PlotData {
+	if len(dataArr) == 0 {
+		return []PlotData{}
+	}
+
 	var sum big.Float
 	for _, val := range dataArr {
 		bigVal := big.NewFloat(val.Value)
 		sum.Add(&sum, bigVal)
 	}
+
+	if sum.Cmp(big.NewFloat(0)) == 0 {
+		return dataArr
+	}
+
 	avg := new(big.Float).Quo(&sum, big.NewFloat(float64(len(dataArr))))
 
 	minVal, maxVal := 0.0, 0.0

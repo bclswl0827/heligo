@@ -35,10 +35,10 @@ func main() {
 	}
 
 	// Get plot data in bytes
-	bytes, err := heli.Bytes(1000, "png")
+	bytes, err := heli.Bytes(1000, "svg")
 	if err != nil {
 		panic(err)
 	}
-	log.Println("plot data in bytes:", len(bytes))
 
+	log.Println("plot data in bytes:", len(bytes))
 }
