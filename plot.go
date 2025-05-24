@@ -14,9 +14,14 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 		colorScheme = &defaultColorScheme{}
 	}
 
-	if maxSamples < 1 {
-		return errors.New("maxSamples must be greater than 0")
+	if maxSamples < 100 {
+		return errors.New("maxSamples must be greater than 100")
 	}
+
+	if lineWidth < 0.1 {
+		return errors.New("lineWidth must be greater than 0.1")
+	}
+
 	plotDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 
 	// Set plot title
