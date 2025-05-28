@@ -16,7 +16,7 @@ func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow in
 	}
 
 	// Perform downsampling with time alignment
-	if dataLength > maxSamples {
+	if maxSamples > 1 && dataLength > maxSamples {
 		newDataArr := make([]PlotData, maxSamples)
 		timeSpan := dataArr[dataLength-1].Time.Sub(dataArr[0].Time)
 
