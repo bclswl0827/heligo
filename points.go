@@ -1,6 +1,7 @@
 package heligo
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -8,7 +9,7 @@ import (
 	"gonum.org/v1/plot/plotter"
 )
 
-func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow int, scaleFactor float64) plotter.XYs {
+func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow int, scaleFactor float64) (plotter.XYs, error) {
 	dataLength := len(dataArr)
 	fillRatio := float64(dataLength) / float64(h.minutesTickSpan.Seconds()) / 100
 	if fillRatio < 1 {
@@ -51,7 +52,10 @@ func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow in
 	}
 
 	// Normalize data to make it easier to plot
-	normalizedDataArr := h.normalizePlotData(dataArr, 0)
+	normalizedDataArr, err := h.normalizePlotData(dataArr, 0)
+	if err != nil {
+		return nil, fmt.Errorf("failed to normalize data: %w", err)
+	}
 	scaleRatio := scaleFactor / math.MaxInt32
 
 	minuteSteps := int(time.Hour.Minutes() / h.minutesTickSpan.Minutes())
@@ -74,5 +78,5 @@ func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow in
 		})
 	}
 
-	return points
+	return points, nil
 }

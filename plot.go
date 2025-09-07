@@ -40,12 +40,11 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 	totalRows := groupRows * int(h.hoursTickSpan.Hours())
 
 	var (
-		wg sync.WaitGroup
-		mu sync.Mutex
+		wg   sync.WaitGroup
+		mu   sync.Mutex
+		sem  = make(chan struct{}, runtime.NumCPU()*10)
+		errs = make(chan error, totalRows)
 	)
-
-	// Set concurrency jobs depending on number of CPUs
-	sem := make(chan struct{}, runtime.NumCPU()*10)
 
 	for row := totalRows; row >= 1; row-- {
 		currentCol := totalRows - row
@@ -67,20 +66,32 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 		go func(row int, lineData []PlotData, currentCol int) {
 			defer func() {
 				<-sem
-				defer wg.Done()
+				wg.Done()
 			}()
 
 			lineColor := colorScheme.GetColor(groupRows, currentCol%groupRows)
-			segments := h.getPlotSegments(lineData, maxSamples, row, scaleFactor, lineWidth, lineColor)
-
-			for _, segment := range segments {
-				mu.Lock()
-				h.plotCtx.Add(segment)
-				mu.Unlock()
+			segments, err := h.getPlotSegments(lineData, maxSamples, row, scaleFactor, lineWidth, lineColor)
+			if err != nil {
+				errs <- err
+				return
 			}
+
+			mu.Lock()
+			for _, segment := range segments {
+				h.plotCtx.Add(segment)
+			}
+			mu.Unlock()
 		}(row, plotData, currentCol)
 	}
 
 	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
