@@ -1,54 +1,57 @@
 package heligo
 
 import (
+	"errors"
 	"fmt"
 	"math"
-	"sort"
 	"time"
 
 	"gonum.org/v1/plot/plotter"
 )
 
-func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow int, scaleFactor float64) (plotter.XYs, error) {
-	dataLength := len(dataArr)
-	fillRatio := float64(dataLength) / float64(h.minutesTickSpan.Seconds()) / 100
-	if fillRatio < 1 {
-		maxSamples = int(fillRatio * float64(maxSamples))
+func (h *Helicorder) resampleMaxSamples(in []PlotData, maxSamples int) ([]PlotData, error) {
+	if len(in) == 0 {
+		return nil, errors.New("input slice is empty")
+	}
+	if maxSamples <= 0 {
+		return nil, errors.New("maxSamples must be > 0")
 	}
 
-	// Perform downsampling with time alignment
-	if maxSamples > 1 && dataLength > maxSamples {
-		newDataArr := make([]PlotData, maxSamples)
-		timeSpan := dataArr[dataLength-1].Time.Sub(dataArr[0].Time)
+	n := len(in)
+	if n <= maxSamples {
+		return in, nil
+	}
 
-		// Interval for downsampled data
-		sampleInterval := timeSpan / time.Duration(maxSamples-1)
+	out := make([]PlotData, maxSamples)
+	ratio := float64(n-1) / float64(maxSamples-1)
 
-		for i := 0; i < maxSamples; i++ {
-			targetTime := dataArr[0].Time.Add(time.Duration(i) * sampleInterval)
-			// Find the closest index where dataArr[j].Time is >= targetTime
-			j := sort.Search(dataLength, func(k int) bool {
-				return dataArr[k].Time.After(targetTime) || dataArr[k].Time.Equal(targetTime)
-			})
-
-			if j > 0 && j < dataLength {
-				// Linear interpolation between dataArr[j-1] and dataArr[j]
-				t1, t2 := dataArr[j-1].Time, dataArr[j].Time
-				v1, v2 := dataArr[j-1].Value, dataArr[j].Value
-				weight := targetTime.Sub(t1).Seconds() / t2.Sub(t1).Seconds()
-				newDataArr[i] = PlotData{
-					Time:  targetTime,
-					Value: v1*(1-weight) + v2*weight,
-				}
-			} else if j == 0 {
-				newDataArr[i] = dataArr[0]
-			} else {
-				newDataArr[i] = dataArr[dataLength-1]
-			}
+	for i := 0; i < maxSamples; i++ {
+		pos := float64(i) * ratio
+		l := int(pos)
+		if l >= n-1 {
+			out[i] = in[n-1]
+			continue
 		}
+		frac := pos - float64(l)
 
-		dataArr = newDataArr
-		dataLength = maxSamples
+		timeDelta := in[l+1].Time.Sub(in[l].Time)
+		newTime := in[l].Time.Add(time.Duration(frac * float64(timeDelta)))
+
+		newValue := in[l].Value*(1-frac) + in[l+1].Value*frac
+
+		out[i] = PlotData{
+			Time:  newTime,
+			Value: newValue,
+		}
+	}
+
+	return out, nil
+}
+
+func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow int, scaleFactor float64) (plotter.XYs, error) {
+	dataArr, err := h.resampleMaxSamples(dataArr, maxSamples)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resample data: %w", err)
 	}
 
 	// Normalize data to make it easier to plot
@@ -63,7 +66,7 @@ func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow in
 	currentCarry := (totalRows - currentRow) % minuteSteps
 
 	var points plotter.XYs
-	for idx := 0; idx < dataLength; idx++ {
+	for idx := 0; idx < len(normalizedDataArr); idx++ {
 		// Check carries to prevent overlapping lines
 		calcCarry := int(normalizedDataArr[idx].Time.Minute()) / int(h.minutesTickSpan.Minutes())
 		if calcCarry != currentCarry {
