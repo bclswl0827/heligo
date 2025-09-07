@@ -3,13 +3,12 @@ package heligo
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"sort"
 	"sync"
 	"time"
 )
 
-func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth float64, colorScheme ColorScheme) error {
+func (h *Helicorder) Plot(date time.Time, workers, maxSamples int, scaleFactor, lineWidth float64, colorScheme ColorScheme) error {
 	if colorScheme == nil {
 		colorScheme = &defaultColorScheme{}
 	}
@@ -22,6 +21,11 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 		return errors.New("lineWidth must be greater than 0.1")
 	}
 
+	if workers < 1 {
+		return errors.New("workers must be greater than 0")
+	}
+
+	date = date.UTC()
 	plotDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 
 	// Set plot title
@@ -42,7 +46,7 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 	var (
 		wg   sync.WaitGroup
 		mu   sync.Mutex
-		sem  = make(chan struct{}, runtime.NumCPU()*10)
+		sem  = make(chan struct{}, workers)
 		errs = make(chan error, totalRows)
 	)
 
@@ -76,11 +80,11 @@ func (h *Helicorder) Plot(date time.Time, maxSamples int, scaleFactor, lineWidth
 				return
 			}
 
-			mu.Lock()
 			for _, segment := range segments {
+				mu.Lock()
 				h.plotCtx.Add(segment)
+				mu.Unlock()
 			}
-			mu.Unlock()
 		}(row, plotData, currentCol)
 	}
 

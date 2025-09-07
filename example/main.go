@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"runtime"
 	"time"
 
 	"github.com/bclswl0827/heligo"
@@ -23,7 +24,7 @@ func main() {
 	}
 
 	log.Println("drawing plot...")
-	err = heli.Plot(mseed.StartTime, 10000, 500, 1, nil) // Set colorScheme to nil to use default color scheme
+	err = heli.Plot(mseed.StartTime, runtime.NumCPU()*2, 10000, 500, 1, nil) // Set colorScheme to nil to use default color scheme
 	if err != nil {
 		panic(err)
 	}
