@@ -2,8 +2,6 @@ module github.com/bclswl0827/heligo
 
 go 1.23.0
 
-toolchain go1.24.6
-
 require (
 	github.com/bclswl0827/mseedio v1.0.9
 	gonum.org/v1/plot v0.16.0

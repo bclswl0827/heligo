@@ -68,13 +68,13 @@ func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow in
 	var points plotter.XYs
 	for idx := 0; idx < len(normalizedDataArr); idx++ {
 		// Check carries to prevent overlapping lines
-		calcCarry := int(normalizedDataArr[idx].Time.Minute()) / int(h.minutesTickSpan.Minutes())
+		calcCarry := int(normalizedDataArr[idx].Time.UTC().Minute()) / int(h.minutesTickSpan.Minutes())
 		if calcCarry != currentCarry {
 			continue
 		}
 
-		minutes := normalizedDataArr[idx].Time.Minute() - calcCarry*int(h.minutesTickSpan.Minutes())
-		seconds := float64(normalizedDataArr[idx].Time.Second()) + float64(normalizedDataArr[idx].Time.Nanosecond())/1000000000
+		minutes := normalizedDataArr[idx].Time.UTC().Minute() - calcCarry*int(h.minutesTickSpan.Minutes())
+		seconds := float64(normalizedDataArr[idx].Time.UTC().Second()) + float64(normalizedDataArr[idx].Time.UTC().Nanosecond())/1000000000
 		points = append(points, plotter.XY{
 			X: float64(minutes) + seconds/60,
 			Y: float64(currentRow) + normalizedDataArr[idx].Value*scaleRatio,
