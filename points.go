@@ -54,30 +54,33 @@ func (h *Helicorder) getPlotPoints(dataArr []PlotData, maxSamples, currentRow in
 		return nil, fmt.Errorf("failed to resample data: %w", err)
 	}
 
-	// Normalize data to make it easier to plot
-	normalizedDataArr, err := h.normalizePlotData(dataArr, 0)
+	// Normalize while constructing the plot points to avoid another full-size
+	// PlotData allocation.
+	avg, err := h.plotDataAverage(dataArr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to normalize data: %w", err)
 	}
 	scaleRatio := scaleFactor / math.MaxInt32
 
+	minutesPerRow := int(h.minutesTickSpan.Minutes())
 	minuteSteps := int(time.Hour.Minutes() / h.minutesTickSpan.Minutes())
 	totalRows := minuteSteps * int(h.hoursTickSpan.Hours())
 	currentCarry := (totalRows - currentRow) % minuteSteps
 
-	var points plotter.XYs
-	for idx := 0; idx < len(normalizedDataArr); idx++ {
+	points := make(plotter.XYs, 0, len(dataArr))
+	for idx := 0; idx < len(dataArr); idx++ {
 		// Check carries to prevent overlapping lines
-		calcCarry := int(normalizedDataArr[idx].Time.UTC().Minute()) / int(h.minutesTickSpan.Minutes())
+		utcTime := dataArr[idx].Time.UTC()
+		calcCarry := utcTime.Minute() / minutesPerRow
 		if calcCarry != currentCarry {
 			continue
 		}
 
-		minutes := normalizedDataArr[idx].Time.UTC().Minute() - calcCarry*int(h.minutesTickSpan.Minutes())
-		seconds := float64(normalizedDataArr[idx].Time.UTC().Second()) + float64(normalizedDataArr[idx].Time.UTC().Nanosecond())/1000000000
+		minutes := utcTime.Minute() - calcCarry*minutesPerRow
+		seconds := float64(utcTime.Second()) + float64(utcTime.Nanosecond())/1000000000
 		points = append(points, plotter.XY{
 			X: float64(minutes) + seconds/60,
-			Y: float64(currentRow) + normalizedDataArr[idx].Value*scaleRatio,
+			Y: float64(currentRow) + (dataArr[idx].Value-avg)*scaleRatio,
 		})
 	}
 

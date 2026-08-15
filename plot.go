@@ -42,11 +42,15 @@ func (h *Helicorder) Plot(date time.Time, workers, maxSamples int, scaleFactor, 
 	// Plot the data
 	groupRows := int(time.Hour.Minutes() / h.minutesTickSpan.Minutes())
 	totalRows := groupRows * int(h.hoursTickSpan.Hours())
+	workerCount := workers
+	if workerCount > totalRows {
+		workerCount = totalRows
+	}
 
 	var (
 		wg   sync.WaitGroup
 		mu   sync.Mutex
-		sem  = make(chan struct{}, workers)
+		sem  = make(chan struct{}, workerCount)
 		errs = make(chan error, totalRows)
 	)
 
@@ -63,7 +67,10 @@ func (h *Helicorder) Plot(date time.Time, workers, maxSamples int, scaleFactor, 
 		if len(plotData) == 0 {
 			continue
 		}
-		sort.SliceStable(plotData, func(i, j int) bool { return plotData[i].Time.Before(plotData[j].Time) })
+		less := func(i, j int) bool { return plotData[i].Time.Before(plotData[j].Time) }
+		if !sort.SliceIsSorted(plotData, less) {
+			sort.SliceStable(plotData, less)
+		}
 
 		sem <- struct{}{}
 		wg.Add(1)
@@ -80,11 +87,11 @@ func (h *Helicorder) Plot(date time.Time, workers, maxSamples int, scaleFactor, 
 				return
 			}
 
+			mu.Lock()
 			for _, segment := range segments {
-				mu.Lock()
 				h.plotCtx.Add(segment)
-				mu.Unlock()
 			}
+			mu.Unlock()
 		}(row, plotData, currentCol)
 	}
 
